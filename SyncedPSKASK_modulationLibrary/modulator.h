@@ -37,7 +37,7 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
 void free_mod_mem();
 //this frees alocated memory
 
-void prepare_array(short* samples,int size);
+void prepare_array(short* samples,int size,int lpf_strenght);
 //this needs to be called before a frame is sent to alsa or after a frame is picked up from alsa
 //this is the band pass filter
 

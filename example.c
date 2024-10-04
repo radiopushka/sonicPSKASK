@@ -26,18 +26,19 @@ int main(int argn, char* argv[]){
   int size = calculate_frame_size(1000,1000);
   printf("initialized\n");
   short frame[size];
+  bzero(frame,sizeof(short)*size);
   unsigned int itterator = 0;
   //create_header(frame, &itterator);
   int i;
   for(i=0;i<1000;i++){
     create_sync_packet(frame,&itterator);
-    create_packet(frame,128,&itterator);
+    create_packet(frame,96,&itterator);
   }
   //create_packet(frame,69,&itterator);
   itterator = 0;
   printf("packets generated\n");
   reset_scheme();
-  prepare_array(frame,size);
+  prepare_array(frame,size,6);
     
   //while(wait_for_sync(frame,&itterator,size,100)==-1);
   int pcount=1;

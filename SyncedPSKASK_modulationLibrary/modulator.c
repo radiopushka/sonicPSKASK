@@ -14,6 +14,7 @@ int packet_size;
 double amplitude;
 unsigned int dframe;
 int clockphase = -1;
+LPF* hc;
 
 
 void move_to_half_cycle(){
@@ -54,19 +55,31 @@ void init_modulation_scheme(int samplerate, int bits,  float startfreq){
   amplitude = 32000;
   bits_packet=bits;
   packet_size=bits*period_samples;
-  setup_low_pass(startfreq,samplerate);
+  hc=create_LPF(samplerate,startfreq,1);
 
 
   move_to_half_cycle();
 }
 
-void prepare_array(short* data, int size){
-  filter_buffer(data,size);
+void prepare_array(short* data, int size,int lowpass_strength){
+  short* dend=data+size;
+  double temp;
+  short* dst = data;
+  int i;
+  for(i=0;i<lowpass_strength;i++){
+   while(dst<dend){
+
+      *dst=convolute(*dst,hc);
+
+    dst++;
+   }
+    dst=data;
+  }
 }
 
 void free_mod_mem(){
   free_d_mem();
-  destroy_filter();
+  free_lpf(&hc);
 }
 
 int get_packet_size(){

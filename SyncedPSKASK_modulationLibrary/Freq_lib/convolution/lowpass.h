@@ -1,13 +1,23 @@
-#ifndef LOWPASS
-#define LOWPASS
+#ifndef HIGHCUT
+#define HIGHCUT
 
-//Evan Nikitin Wed Oct  2 09:22:05 PM -00 2024 - self learning radio player
+struct Low_pass{
+	double* buffer;
+	double* cw;
+  double* cw_end;
+  double* bend;
+  double strength;
+};
 
-void filter_buffer(short* buffer, int buffer_size);
-void destroy_filter();
-void setup_low_pass(int freqhz,int sample_rate);
+typedef struct Low_pass LPF;
+
+LPF* create_LPF(int sample_rate, int freq, double strength);
 
 
 
-#endif
+double convolute(double inval,LPF* filter);
 
+
+void free_lpf(LPF** lin);
+
+#endif // !HIGHCUT
