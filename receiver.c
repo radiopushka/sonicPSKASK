@@ -81,8 +81,10 @@ int main(int argn, char* argv[]){
           if(outputcpy%273==0){
               outputcpy=outputcpy/273;
               if(outputcpy!=0){
-                chrsrx=outputcpy;
-                printf("%d\n",chrsrx);
+                if(outputcpy<=(255*bsize)){
+                  chrsrx=outputcpy;
+                  printf("%d\n",chrsrx);
+                }
               }
             
           }else if(output%257==0){
