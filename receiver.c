@@ -70,9 +70,9 @@ int main(int argn, char* argv[]){
 
 
     while(itterator<size){
-      if(wait_for_sync(frame,&itterator,size,100)!=-1){
+      if(wait_for_sync(frame,&itterator,size,700)!=-1){
 
-        int output=(int)demod(frame,&itterator,size,100);
+        int output=(int)demod(frame,&itterator,size,700);
         int outputcpy=output;
         int position;
         if(output!=-1){
