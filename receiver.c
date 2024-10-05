@@ -24,8 +24,8 @@ int checkchar_loop(int input){
 
 int main(int argn, char* argv[]){
 
-  init_modulation_scheme(48000,21,400,6);
-  create_transmitter(48000,20000);
+  init_modulation_scheme(48000,21,600,6);
+  create_transmitter(48000,18000);
 
   char tbuff[29];
   bzero(tbuff,sizeof(char)*22);
@@ -42,6 +42,7 @@ int main(int argn, char* argv[]){
     return 0;
 
   printf("alsa ready\n");
+  printf("\n");
 
   int bsize=-1;
   int rxcount=0;
@@ -49,19 +50,23 @@ int main(int argn, char* argv[]){
   short mval;
   int chrsrx;
 
-  while(1){
+  int msgrx=0;
+
+  int framegain=15000;
+
+  while(msgrx==0){
     aread(frame);
     demod_carrier(frame,size);
     prepare_array(frame,size,gaincont);
     
     mval=getmaxval(frame,size);
-    if(mval<14000){
-      if(mval<5000){
+    if(mval<framegain-1000){
+      if(mval<framegain/2){
         gaincont=gaincont+1;
       }
       gaincont=gaincont+0.1;
     }
-    if(mval>15000){
+    if(mval>framegain){
       gaincont=gaincont-0.1;
       if(gaincont<1){
         gaincont=1;
@@ -83,7 +88,6 @@ int main(int argn, char* argv[]){
               if(outputcpy!=0){
                 if(outputcpy<=(255*bsize)){
                   chrsrx=outputcpy;
-                  printf("%d\n",chrsrx);
                 }
               }
             
@@ -106,10 +110,13 @@ int main(int argn, char* argv[]){
                 }
 
                 tbuff[bsize]=0;
-                if(strlen(tbuff)==bsize && calculate_message_chrsum(tbuff,bsize)==chrsrx){
-                 printf("%s\n",tbuff);
+                int chrsm=calculate_message_chrsum(tbuff,bsize);
+                if(strlen(tbuff)==bsize && chrsm==chrsrx){
+                 printf("\n%s\n",tbuff);
+                 msgrx=1;
+                 break;
                 }else{
-                  printf("received: %d/%d %s\n",rxcount,bsize,tbuff);
+                  printf("received: %d/%d %d vs %d          \r",rxcount,bsize,chrsm,chrsrx);
                 }
               }else if(position==1){
                 if(output<29)

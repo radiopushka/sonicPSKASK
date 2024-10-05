@@ -37,6 +37,12 @@ void reset_scheme(){
 //
 LPF** filters;
 int filterc=0;
+
+double kawaru;
+//changing this number helps with multipath
+//70 is best for 400 hz rate i will try the formula
+//kawaru = minamp/(samplerate/switching_freq)
+//keep minimum amplitude around 14000 and max around 15000 for the AGC
  
 void init_modulation_scheme(int samplerate, int bits,  float startfreq,int lowpass_strength){
 
@@ -68,6 +74,8 @@ void init_modulation_scheme(int samplerate, int bits,  float startfreq,int lowpa
 
 
   move_to_half_cycle();
+
+  kawaru=14000/(samplerate/startfreq);
 }
 
 void prepare_array(short* data, int size,double gain){
@@ -163,9 +171,7 @@ void create_packet(short* targ_array, unsigned long data_in, unsigned int* array
 int sync_polarity = 1;
 
 
-double kawaru=70;
-//changing this number helps with multipath
-//70
+
 
   int averaging = 0;
 unsigned int phase=1;

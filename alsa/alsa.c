@@ -117,9 +117,13 @@ int get_sample_rate(){
 	return playback_sample_rate;
 }
 void free_alsa(){
+  if(record!=NULL)
 	snd_pcm_close(record);
+  if(playback!=NULL)
 	snd_pcm_close(playback);
+  if(record!=NULL)
 	snd_pcm_hw_free(record);
+  if(playback!=NULL)
 	snd_pcm_hw_free(playback);
   snd_pcm_status_free(plbk_stat);
   snd_pcm_status_free(record_stat);
