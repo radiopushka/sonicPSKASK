@@ -28,7 +28,7 @@ int main(int argn, char* argv[]){
   create_transmitter(48000,18000);
 
   char tbuff[29];
-  bzero(tbuff,sizeof(char)*22);
+  bzero(tbuff,sizeof(char)*29);
 
   int size = calculate_frame_size(30,30);
   printf("initialized\n");
@@ -48,11 +48,12 @@ int main(int argn, char* argv[]){
   int rxcount=0;
   double gaincont = 1;
   short mval;
-  int chrsrx;
+  int chrsrx=-1;
 
   int msgrx=0;
 
   int framegain=15000;
+  int sqg=framegain/3;
 
   while(msgrx==0){
     aread(frame);
@@ -75,9 +76,9 @@ int main(int argn, char* argv[]){
 
 
     while(itterator<size){
-      if(wait_for_sync(frame,&itterator,size,700)!=-1){
+      if(wait_for_sync(frame,&itterator,size,sqg)!=-1){
 
-        int output=(int)demod(frame,&itterator,size,700);
+        int output=(int)demod(frame,&itterator,size,sqg);
         int outputcpy=output;
         int position;
         if(output!=-1){
@@ -113,7 +114,11 @@ int main(int argn, char* argv[]){
                 int chrsm=calculate_message_chrsum(tbuff,bsize);
                 if(strlen(tbuff)==bsize && chrsm==chrsrx){
                  printf("\n%s\n",tbuff);
-                 msgrx=1;
+                 bzero(tbuff,sizeof(char)*29);
+                 bsize=-1;
+                 rxcount=0;
+                  chrsrx=-1;
+                 //msgrx=1;
                  break;
                 }else{
                   printf("received: %d/%d %d vs %d          \r",rxcount,bsize,chrsm,chrsrx);

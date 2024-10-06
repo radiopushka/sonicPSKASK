@@ -39,6 +39,7 @@ LPF** filters;
 int filterc=0;
 
 double kawaru;
+int rblk;
 //changing this number helps with multipath
 //70 is best for 400 hz rate i will try the formula
 //kawaru = minamp/(samplerate/switching_freq)
@@ -76,6 +77,7 @@ void init_modulation_scheme(int samplerate, int bits,  float startfreq,int lowpa
   move_to_half_cycle();
 
   kawaru=14000/(samplerate/startfreq);
+  rblk=14000/(period_samples);
 }
 
 void prepare_array(short* data, int size,double gain){
@@ -187,33 +189,53 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
     return -2;
   }
   int off_point=0;
+  int downtime=0;
   double prev=targ_array[*array_itterator];
   for(i=*array_itterator;i<array_size;i++){
     if(fabs(targ_array[i])<squelch){
       off_point=1;
-    }else if((fabs(prev-targ_array[i])) > kawaru){
-     // printf("%d\n",targ_array[i]);
-      if(prev>targ_array[i]&&off_point==1){
-        going_up=0;
-        going_down=1;
-        off_point=0;
-      }else if (prev<targ_array[i]&&off_point==1){
-        going_up=1;
-        going_down=0;
-        off_point=0;
-      }else if(prev<targ_array[i] && going_down==1 && off_point==0){
+      downtime++;
+    }else{
+      if(downtime>period_samples*2){
         reset_counter(2);
-        phase=-1;
-        *array_itterator=i-1;
-        return 1;
+        if(targ_array[i]<0){
+          phase=-1;
+        }else {
+          phase=1;
+        }
+        //printf("%d %d\n",targ_array[i-(squelch/rblk)],targ_array[i]);
+        //*array_itterator=i-squelch/rblk;
+        //*array_itterator=i;
+        //*array_itterator=i+((14000-squelch)/rblk)*2;
+        int previ=i;
+        int peak=0;
+        int peak_index=-1;
+        while(i<array_size){
+          if(phase==1){
+            if(targ_array[i]<0){
+              *array_itterator=peak_index;
+              //printf("%d %d\n",targ_array[*array_itterator],targ_array[previ]);
+              return 1;
+            }
 
-      }else if(prev>targ_array[i] && going_up==1 && off_point==0){
-        reset_counter(2);
-        phase=1;
-        *array_itterator=i-1;
-        return 1;
+          }else{
+            if(targ_array[i]>0){
+              *array_itterator=peak_index;
+              return 1;
+            }
+          }
+          if(abs(targ_array[i])>peak){
+            peak=abs(targ_array[i]);
+            peak_index=i;
+          }
+          i++;
+        }
+
+        *array_itterator=i;
+        return -1;
       }
-
+      off_point=0;
+      downtime=0;
     }
     
     prev=targ_array[i];
@@ -231,6 +253,7 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
   unsigned long outval=0;
   unsigned long packet=0;
   char bin;
+  int downtime=0;
 
  if(*array_itterator>=array_size)
     *array_itterator=0;
@@ -245,6 +268,7 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
         }else{
           bin=0;
         }
+        //printf("%d",bin);
         outval=(outval<<1)|(bin&1);
       }else{
         outval=(outval>>1)&dframe;
@@ -252,6 +276,7 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
           packet=(packet<<1)|(outval&1);
           outval=outval>>1;
         }
+        //printf("\n");
         //printf("%d\n",packet);
         *array_itterator=i;
         return packet;
