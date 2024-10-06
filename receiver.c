@@ -30,7 +30,7 @@ int main(int argn, char* argv[]){
   char tbuff[29];
   bzero(tbuff,sizeof(char)*29);
 
-  int size = calculate_frame_size(30,30);
+  int size = calculate_frame_size(5,5);
   printf("initialized\n");
   short frame[size];
   short frame2[size];
@@ -54,7 +54,7 @@ int main(int argn, char* argv[]){
   int msgrx=0;
 
   int framegain=15000;
-  int sqg=framegain/2;
+  int sqg=framegain-5000;
 
   while(msgrx==0){
     aread(frame);
@@ -66,10 +66,10 @@ int main(int argn, char* argv[]){
       if(mval<framegain/2){
         gaincont=gaincont+1;
       }
-      gaincont=gaincont+0.1;
+      gaincont=gaincont+0.03;
     }
     if(mval>framegain){
-      gaincont=gaincont-0.1;
+      gaincont=gaincont-0.2;
       if(gaincont<1){
         gaincont=1;
       }

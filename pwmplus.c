@@ -40,14 +40,31 @@ void demod_carrier(short* array,int size){
 
 short getmaxval(short* array,int size){
  short* end= array+size;
-  short max=0;
+  int max=0;
+  int maxf=0;
+  int crossings=0;
+  int prev=array[0];
   while(array<end){
     if(abs(*array)>max){
       max=abs(*array);
     }
+    if(prev>0&&*array<0 || prev<0&&*array>0){
+      if(crossings>20){
+
+        if(maxf==0){
+          maxf=max;
+        }else{
+          maxf=(maxf+max)/2;
+        }
+        max=0;
+        crossings++;
+      }
+      crossings++;
+    }
+    prev=*array;
     array++;
   }
-  return max;
+  return maxf;
 
 }
 

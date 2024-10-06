@@ -110,26 +110,26 @@ int get_packet_size(){
   return packet_size;
 }
 int calculate_frame_size(int packets,int syncs){
-  return packet_size*packets+syncs*period_samples*9;
+  return packet_size*packets+syncs*period_samples*11;
 }
 void create_sync_packet(short* targ_array,unsigned int* array_itterator){
   int flip_count = 0;
   clockphase=1;
   double val;
   unsigned int itop=*array_itterator;
-  while(flip_count<9){
+  while(flip_count<11){
     
 
     val=value_at(0);
     if(is_cross(0)==1){
-      if(flip_count<6){
+      if(flip_count<8){
         clockphase=0;
       }else{
         clockphase=1;
       }
       flip_count++;
     }
-    if(flip_count<9){
+    if(flip_count<11){
       targ_array[itop] = val*amplitude*clockphase;
       itop++;
     }
@@ -196,7 +196,7 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
       off_point=1;
       downtime++;
     }else{
-      if(downtime>period_samples*3){
+      if(downtime>period_samples*4){
         reset_counter(2);
         if(targ_array[i]<0){
           phase=-1;
