@@ -33,6 +33,7 @@ int main(int argn, char* argv[]){
   int size = calculate_frame_size(30,30);
   printf("initialized\n");
   short frame[size];
+  short frame2[size];
   bzero(frame,sizeof(short)*size);
   unsigned int itterator = 0;
   //create_header(frame, &itterator);
@@ -53,7 +54,7 @@ int main(int argn, char* argv[]){
   int msgrx=0;
 
   int framegain=15000;
-  int sqg=framegain-5000;
+  int sqg=framegain/2;
 
   while(msgrx==0){
     aread(frame);
