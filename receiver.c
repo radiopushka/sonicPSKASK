@@ -53,7 +53,7 @@ int main(int argn, char* argv[]){
   int msgrx=0;
 
   int framegain=15000;
-  int sqg=framegain/3;
+  int sqg=framegain-5000;
 
   while(msgrx==0){
     aread(frame);
