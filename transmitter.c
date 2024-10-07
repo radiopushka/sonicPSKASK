@@ -26,7 +26,7 @@ int main(int argn, char* argv[]){
   }
 
   init_modulation_scheme(48000,21,500,6);
-  create_transmitter(48000,18000);
+  create_transmitter(48000,19000);
 
   int size = calculate_frame_size(framesize+1,framesize+1);
   printf("initialized\n");
@@ -43,7 +43,7 @@ int main(int argn, char* argv[]){
   short prev;
   short mval;
   double gain=1;
-  int top =30000;
+  int top =8200;
   while(1){
     int i;
     for(i=0;i<framesize+1;i++){

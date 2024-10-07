@@ -25,7 +25,7 @@ int checkchar_loop(int input){
 int main(int argn, char* argv[]){
 
   init_modulation_scheme(48000,21,500,6);
-  create_receiver(48000,18000);
+  create_receiver(48000,19000);
 
   char tbuff[29];
   bzero(tbuff,sizeof(char)*29);
@@ -54,7 +54,7 @@ int main(int argn, char* argv[]){
   int msgrx=0;
 
   int framegain=25000;
-  int sqg=framegain/2;
+  int sqg=framegain/3;
   int error=0;
   int peakavg=0;
   int success=0;

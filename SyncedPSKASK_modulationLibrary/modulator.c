@@ -192,11 +192,13 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
   }
   int off_point=0;
   int downtime=0;
+  int uptime=0;
   double prev=targ_array[*array_itterator];
   for(i=*array_itterator;i<array_size;i++){
     if(fabs(targ_array[i])<squelch){
       off_point=1;
       downtime++;
+      uptime=0;
     }else{
       if(downtime>period_samples*4){
         reset_counter(2);
@@ -244,9 +246,12 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
 
         *array_itterator=i;
         return -1;
+      }else if(uptime>=period_samples/2){
+        downtime=0;
       }
       off_point=0;
-      downtime=0;
+      //downtime=0;
+      uptime++;
     }
     
     prev=targ_array[i];
@@ -280,9 +285,11 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
       if(pcount!=-1){
         perd=i-pcount;
         if(perd!=1){
-          periodv=perd;
+          if(perd<period_samples+5 && perd>period_samples-5){
+           periodv=perd;
+           //printf("%d\n",perd);
+          }
         }
-        //printf("%d\n",perd);
       }
       pcount=i;
       passed=1;
@@ -313,7 +320,6 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
       phase=-phase;
       clock=0;
       peak=0;
-      peakindex=-1;
     }
     //prev=targ_array[i];
     //value_at(2);
