@@ -24,8 +24,8 @@ int checkchar_loop(int input){
 
 int main(int argn, char* argv[]){
 
-  init_modulation_scheme(48000,21,600,6);
-  create_transmitter(48000,18000);
+  init_modulation_scheme(48000,21,500,6);
+  create_receiver(48000,18000);
 
   char tbuff[29];
   bzero(tbuff,sizeof(char)*29);
@@ -53,23 +53,39 @@ int main(int argn, char* argv[]){
 
   int msgrx=0;
 
-  int framegain=15000;
-  int sqg=framegain-5000;
+  int framegain=25000;
+  int sqg=framegain/2;
+  int error=0;
+  int peakavg=0;
+  int success=0;
+  int success_past=0;
+  double cgain;
+  double cgain_cgain;
+
+
+
+  int success_rate_max=0;
+  double success_rate_gain=0;
+
 
   while(msgrx==0){
     aread(frame);
     demod_carrier(frame,size);
     prepare_array(frame,size,gaincont);
+    cgain=gaincont;
     
     mval=getmaxval(frame,size);
-    if(mval<framegain-1000){
+    peakavg=(mval+peakavg)/2;
+    error=framegain-peakavg;
+    
+    if(mval<sqg){
       if(mval<framegain/2){
-        gaincont=gaincont+1;
+        gaincont=gaincont+0.1;
       }
-      gaincont=gaincont+0.03;
+      gaincont=gaincont+0.01;
     }
     if(mval>framegain){
-      gaincont=gaincont-0.2;
+      gaincont=gaincont-1;
       if(gaincont<1){
         gaincont=1;
       }
@@ -86,6 +102,7 @@ int main(int argn, char* argv[]){
           position=(output>>16);
           output=output&65535;
           if(outputcpy%273==0){
+              success++;
               outputcpy=outputcpy/273;
               if(outputcpy!=0){
                 if(outputcpy<=(255*bsize)){
@@ -94,6 +111,7 @@ int main(int argn, char* argv[]){
               }
             
           }else if(output%257==0){
+            success++;
             output=output/257;
             if(output!=0){
               if(position-1<=bsize&&position>1){
@@ -135,6 +153,18 @@ int main(int argn, char* argv[]){
       }
     }
     itterator=0;
+    //printf("%g %d %d \n",cgain, success,success_past);
+    if(success>=success_rate_max){
+      success_rate_gain=cgain;
+    }else if(cgain!=success_rate_gain){
+      gaincont=success_rate_gain;
+    }else if(success_past>success){
+      gaincont=cgain_cgain;
+    }
+
+    cgain_cgain=cgain;
+    success_past=success;
+    success=0;
   }
   free_alsa();
   /*

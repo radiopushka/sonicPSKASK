@@ -25,7 +25,7 @@ int main(int argn, char* argv[]){
     charsum=charsum+frametxt[i];
   }
 
-  init_modulation_scheme(48000,21,600,6);
+  init_modulation_scheme(48000,21,500,6);
   create_transmitter(48000,18000);
 
   int size = calculate_frame_size(framesize+1,framesize+1);

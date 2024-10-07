@@ -169,6 +169,8 @@ void create_packet(short* targ_array, unsigned long data_in, unsigned int* array
 
 // demodulation, must reset the library when switching modes
 
+int periodv=0;
+int clock=0;
 
 int sync_polarity = 1;
 
@@ -198,11 +200,13 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
     }else{
       if(downtime>period_samples*4){
         reset_counter(2);
+        //clock=0;
         if(targ_array[i]<0){
           phase=-1;
         }else {
           phase=1;
         }
+        
         //printf("%d %d\n",targ_array[i-(squelch/rblk)],targ_array[i]);
         //*array_itterator=i-squelch/rblk;
         //*array_itterator=i;
@@ -213,13 +217,20 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
         while(i<array_size){
           if(phase==1){
             if(targ_array[i]<0){
+              periodv=period_samples;
+              //printf("period: %d\n",(int)i-peak_index);
               *array_itterator=peak_index;
-              //printf("%d %d\n",targ_array[*array_itterator],targ_array[previ]);
+              clock=periodv;
+              //printf("period: %d %d\n",periodv,period_samples);
               return 1;
             }
 
           }else{
             if(targ_array[i]>0){
+              periodv=period_samples;
+
+              clock=periodv;
+              //printf("period: %d %d\n",periodv,period_samples);
               *array_itterator=peak_index;
               return 1;
             }
@@ -254,21 +265,39 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
   unsigned long packet=0;
   char bin;
   int downtime=0;
+  int peak=0;
+  int peakindex=-1;
+  int pcount=-1;
+  int perd=-1;
+  int passed=0;
 
  if(*array_itterator>=array_size)
     *array_itterator=0;
 
   for(i=*array_itterator;i<array_size;i++){
     
-    if(is_cross(2)==1){
-      if(fabs(targ_array[i])>squelch){
-        value=targ_array[i]*phase;
+    if(abs(targ_array[i])>=squelch && passed==0){
+      if(pcount!=-1){
+        perd=i-pcount;
+        if(perd!=1){
+          periodv=perd;
+        }
+        //printf("%d\n",perd);
+      }
+      pcount=i;
+      passed=1;
+    }
+
+    if(clock>=periodv){
+      passed=0;
+      if(abs(targ_array[i])>=squelch){
+        value=targ_array[i]*(phase);
         if(value>0){
           bin=1;
         }else{
           bin=0;
         }
-        //printf("%d",bin);
+        //printf("%d ",value);
         outval=(outval<<1)|(bin&1);
       }else{
         outval=(outval>>1)&dframe;
@@ -282,8 +311,13 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
         return packet;
       }
       phase=-phase;
+      clock=0;
+      peak=0;
+      peakindex=-1;
     }
-    value_at(2);
+    //prev=targ_array[i];
+    //value_at(2);
+    clock++;
     
   }
   *array_itterator=i;
