@@ -30,7 +30,7 @@ int main(int argn, char* argv[]){
   char tbuff[29];
   bzero(tbuff,sizeof(char)*29);
 
-  int size = calculate_frame_size(5,5);
+  int size = calculate_frame_size(10,10);
   printf("initialized\n");
   short frame[size];
   short frame2[size];
@@ -68,6 +68,11 @@ int main(int argn, char* argv[]){
   double success_rate_gain=0;
 
 
+  //PID gain control
+  int previous_error=0;
+  int error_over=0;
+
+
   while(msgrx==0){
     aread(frame);
     demod_carrier(frame,size);
@@ -75,22 +80,11 @@ int main(int argn, char* argv[]){
     cgain=gaincont;
     
     mval=getmaxval(frame,size);
-    peakavg=(mval+peakavg)/2;
-    error=framegain-peakavg;
-    
-    if(mval<sqg){
-      if(mval<framegain/2){
-        gaincont=gaincont+0.1;
-      }
-      gaincont=gaincont+0.01;
-    }
-    if(mval>framegain){
-      gaincont=gaincont-1;
-      if(gaincont<1){
-        gaincont=1;
-      }
-    }
+    error=(framegain/2)-mval;
 
+    gaincont=0.00059*(error) + 0*(error-previous_error) + 0.00025*(error_over);
+    error_over=(error_over+error)/2;
+    previous_error=error;
 
     while(itterator<size){
       if(wait_for_sync(frame,&itterator,size,sqg)!=-1){
@@ -102,20 +96,20 @@ int main(int argn, char* argv[]){
           position=(output>>16);
           output=output&65535;
           if(outputcpy%273==0){
-              success++;
               outputcpy=outputcpy/273;
               if(outputcpy!=0){
                 if(outputcpy<=(255*bsize)){
+                  success++;
                   chrsrx=outputcpy;
                 }
               }
             
           }else if(output%257==0){
-            success++;
             output=output/257;
             if(output!=0){
               if(position-1<=bsize&&position>1){
 
+                success++;
                 if(strlen(tbuff)==bsize){
                     int bef=calculate_message_chrsum(tbuff,bsize);
                     char prev=tbuff[position-2];
@@ -153,15 +147,8 @@ int main(int argn, char* argv[]){
       }
     }
     itterator=0;
-    //printf("%g %d %d \n",cgain, success,success_past);
-    if(success>=success_rate_max){
-      success_rate_gain=cgain;
-    }else if(cgain!=success_rate_gain){
-      gaincont=success_rate_gain;
-    }else if(success_past>success){
-      gaincont=cgain_cgain;
-    }
-
+    //printf("%g %d %d %d \n",cgain, success,success_past,mval);
+    
     cgain_cgain=cgain;
     success_past=success;
     success=0;
