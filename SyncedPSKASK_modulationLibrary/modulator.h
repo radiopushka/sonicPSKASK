@@ -8,8 +8,10 @@
 
 //Evan Nikitin Wed Oct  2 09:22:05 PM -00 2024
 
-void init_modulation_scheme(int samplerate,int bits,  float startfrequency, int lpf_strenght);
+void init_modulation_scheme(int samplerate,int bits,  float startfrequency, int lpf_strenght, int filter_tight);
 //this function sets up the modulation params for the specific frequency and sample rate
+//put one for filter_tight for a stricter low pass, better for reception
+//put zero for transmission
 
 void create_sync_packet(short* targ_array,unsigned int* itterator);
 //this function modulates a synchronization trigger

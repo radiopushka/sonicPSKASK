@@ -24,13 +24,13 @@ int checkchar_loop(int input){
 
 int main(int argn, char* argv[]){
 
-  init_modulation_scheme(48000,21,500,6);
+  init_modulation_scheme(48000,21,500,6,1);
   create_receiver(48000,19000);
 
   char tbuff[29];
   bzero(tbuff,sizeof(char)*29);
 
-  int size = calculate_frame_size(10,10);
+  int size = calculate_frame_size(5,5);
   printf("initialized\n");
   short frame[size];
   short frame2[size];
@@ -81,8 +81,10 @@ int main(int argn, char* argv[]){
     
     mval=getmaxval(frame,size);
     error=(framegain/2)-mval;
-
+    //500 hz bandwidth
     gaincont=0.00059*(error) + 0*(error-previous_error) + 0.00025*(error_over);
+    //300 hz band width
+    //gaincont=0.001*(error) + 0*(error-previous_error) + 0.001*(error_over);
     error_over=(error_over+error)/2;
     previous_error=error;
 

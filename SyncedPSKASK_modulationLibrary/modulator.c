@@ -45,7 +45,7 @@ int rblk;
 //kawaru = minamp/(samplerate/switching_freq)
 //keep minimum amplitude around 14000 and max around 15000 for the AGC
  
-void init_modulation_scheme(int samplerate, int bits,  float startfreq,int lowpass_strength){
+void init_modulation_scheme(int samplerate, int bits,  float startfreq,int lowpass_strength,int tight_filter){
 
   if(bits < 1){
     printf("cannot create modulation scheme for 0 bits, ABORT\n");
@@ -69,9 +69,13 @@ void init_modulation_scheme(int samplerate, int bits,  float startfreq,int lowpa
 
   filterc=lowpass_strength;
 
+  float ffreq=startfreq+(startfreq/6);
+  if(tight_filter==1){
+    ffreq=startfreq-(startfreq/6);
+  }
   filters = malloc(sizeof(LPF)*lowpass_strength);
   for(i=0;i<lowpass_strength;i++)
-    filters[i]=create_LPF(samplerate,startfreq-(startfreq/6),1);
+    filters[i]=create_LPF(samplerate,ffreq,1);
 
 
   move_to_half_cycle();
@@ -193,12 +197,18 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
   int off_point=0;
   int downtime=0;
   int uptime=0;
+  int closest_0=squelch;
+  int closeindex=-1;
   double prev=targ_array[*array_itterator];
   for(i=*array_itterator;i<array_size;i++){
-    if(fabs(targ_array[i])<squelch){
+    if(abs(targ_array[i])<squelch){
       off_point=1;
       downtime++;
       uptime=0;
+      if(abs(targ_array[i])<closest_0){
+        closest_0=abs(targ_array[i]);
+        closeindex=i;
+      }
     }else{
       if(downtime>period_samples*4){
         reset_counter(2);
@@ -213,34 +223,22 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
         //*array_itterator=i-squelch/rblk;
         //*array_itterator=i;
         //*array_itterator=i+((14000-squelch)/rblk)*2;
-        int previ=i;
         int peak=0;
         int peak_index=-1;
+        int bindex=0;
+        int stopping=period_samples-(period_samples/4);
         while(i<array_size){
-          if(phase==1){
-            if(targ_array[i]<0){
-              periodv=period_samples;
-              //printf("period: %d\n",(int)i-peak_index);
-              *array_itterator=peak_index;
-              clock=periodv;
-              //printf("period: %d %d\n",periodv,period_samples);
-              return 1;
-            }
-
-          }else{
-            if(targ_array[i]>0){
-              periodv=period_samples;
-
-              clock=periodv;
-              //printf("period: %d %d\n",periodv,period_samples);
-              *array_itterator=peak_index;
-              return 1;
-            }
+          if(bindex>=stopping){
+            *array_itterator=peak_index;
+            clock=periodv;
+            periodv=period_samples;
+            return 1;
           }
           if(abs(targ_array[i])>peak){
             peak=abs(targ_array[i]);
             peak_index=i;
           }
+          bindex++;
           i++;
         }
 
@@ -248,6 +246,9 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
         return -1;
       }else if(uptime>=period_samples/2){
         downtime=0;
+        closest_0=squelch;
+        closeindex=-1;
+
       }
       off_point=0;
       //downtime=0;
@@ -286,7 +287,7 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
         perd=i-pcount;
         if(perd!=1){
           if(perd<period_samples+5 && perd>period_samples-5){
-           periodv=perd;
+           //periodv=perd;
            //printf("%d\n",perd);
           }
         }
