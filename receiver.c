@@ -30,7 +30,7 @@ int main(int argn, char* argv[]){
   char tbuff[29];
   bzero(tbuff,sizeof(char)*29);
 
-  int size = calculate_frame_size(5,5);
+  int size = calculate_frame_size(15,15);
   printf("initialized\n");
   short frame[size];
   short frame2[size];
