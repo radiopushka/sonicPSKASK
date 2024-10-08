@@ -54,7 +54,7 @@ int main(int argn, char* argv[]){
   int msgrx=0;
 
   int framegain=25000;
-  int sqg=framegain/3;
+  int sqg=framegain/4;
   int error=0;
   int peakavg=0;
   int success=0;
