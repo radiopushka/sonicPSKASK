@@ -45,7 +45,7 @@ int rblk;
 //kawaru = minamp/(samplerate/switching_freq)
 //keep minimum amplitude around 14000 and max around 15000 for the AGC
  
-void init_modulation_scheme(int samplerate, int bits,  float startfreq,int lowpass_strength,int tight_filter){
+void init_modulation_scheme(int samplerate, int bits,  float startfreq,int lowpass_strength){
 
   if(bits < 1){
     printf("cannot create modulation scheme for 0 bits, ABORT\n");
@@ -70,9 +70,6 @@ void init_modulation_scheme(int samplerate, int bits,  float startfreq,int lowpa
   filterc=lowpass_strength;
 
   float ffreq=startfreq+(startfreq/6);
-  if(tight_filter==1){
-    ffreq=startfreq;
-  }
   filters = malloc(sizeof(LPF)*lowpass_strength);
   for(i=0;i<lowpass_strength;i++)
     filters[i]=create_LPF(samplerate,ffreq,1);
