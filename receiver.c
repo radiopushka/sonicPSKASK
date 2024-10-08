@@ -24,7 +24,7 @@ int checkchar_loop(int input){
 
 int main(int argn, char* argv[]){
 
-  init_modulation_scheme(48000,21,500,6);
+  init_modulation_scheme(48000,21,500,6,1);
   create_receiver(48000,19000);
 
   char tbuff[29];
