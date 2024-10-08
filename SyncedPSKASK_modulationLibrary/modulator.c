@@ -71,7 +71,7 @@ void init_modulation_scheme(int samplerate, int bits,  float startfreq,int lowpa
 
   float ffreq=startfreq+(startfreq/6);
   if(tight_filter==1){
-    ffreq=startfreq-(startfreq/6);
+    ffreq=startfreq;
   }
   filters = malloc(sizeof(LPF)*lowpass_strength);
   for(i=0;i<lowpass_strength;i++)
@@ -210,6 +210,7 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
         closeindex=i;
       }
     }else{
+        //printf("%d %d\n",targ_array[i-5],targ_array[i]);
       if(downtime>period_samples*4){
         reset_counter(2);
         //clock=0;
@@ -219,7 +220,7 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
           phase=1;
         }
         
-        //printf("%d %d\n",targ_array[i-(squelch/rblk)],targ_array[i]);
+       // printf("%d %d\n",targ_array[i-5],targ_array[i]);
         //*array_itterator=i-squelch/rblk;
         //*array_itterator=i;
         //*array_itterator=i+((14000-squelch)/rblk)*2;
