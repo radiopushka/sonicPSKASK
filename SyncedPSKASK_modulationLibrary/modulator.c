@@ -5,6 +5,7 @@
 #include <string.h>
 #include <math.h>
 #include "modulator.h"
+#include "../alsa/alsa.h"
 
 //Evan Nikitin Wed Oct  2 09:22:05 PM -00 2024
 
@@ -110,13 +111,14 @@ void free_mod_mem(){
   free(filters);
 }
 
-int get_packet_size(){
-  return packet_size;
+int get_packet_size_buffer(){
+  return packet_size + period_samples*5;
 }
 int calculate_frame_size(int packets,int syncs){
   return packet_size*packets+syncs*period_samples*11;
 }
 void create_sync_packet(short* targ_array,unsigned int* array_itterator){
+  //creates the packet with the phase sync
   int flip_count = 0;
   clockphase=1;
   double val;
@@ -155,6 +157,8 @@ void create_packet(short* targ_array, unsigned long data_in, unsigned int* array
         clockphase=(data_in&1);
         if(clockphase==0)
           clockphase=-1;
+
+      //printf("%d ",(int)data_in&1);
         data_in=data_in>>1;
       flip_count++;
       
@@ -165,6 +169,7 @@ void create_packet(short* targ_array, unsigned long data_in, unsigned int* array
     }
   }
   *array_itterator=itop;
+    //printf("\n");
 
 
 }
@@ -200,13 +205,15 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
   int closest_0=squelch;
   int closeindex=-1;
   double prev=targ_array[*array_itterator];
+  int vabs;
   for(i=*array_itterator;i<array_size;i++){
-    if(abs(targ_array[i])<squelch){
+    vabs=abs(targ_array[i]);
+    if(vabs<squelch){
       off_point=1;
       downtime++;
       uptime=0;
-      if(abs(targ_array[i])<closest_0){
-        closest_0=abs(targ_array[i]);
+      if(vabs<closest_0){
+        closest_0=vabs;
         closeindex=i;
       }
     }else{
@@ -228,14 +235,15 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
         int bindex=0;
         int stopping=period_samples-(period_samples/4);
         while(i<array_size){
+          vabs=abs(targ_array[i]);
           if(bindex>=stopping){
             *array_itterator=peak_index;
             clock=periodv;
             periodv=period_samples;
             return 1;
           }
-          if(abs(targ_array[i])>peak){
-            peak=abs(targ_array[i]);
+          if(vabs>peak){
+            peak=vabs;
             peak_index=i;
           }
           bindex++;
@@ -264,48 +272,32 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
 unsigned int carray=0;
 
 
-long demod(short* targ_array, unsigned int* array_itterator,int array_size,int squelch){
+long demod(short* targ_array, unsigned int* array_itterator,int array_size){
+  //demodulation function
   unsigned int i,i2;
   int value;
   unsigned long outval=0;
   unsigned long packet=0;
   char bin;
-  int downtime=0;
-  int peak=0;
-  int peakindex=-1;
-  int pcount=-1;
-  int perd=-1;
-  int passed=0;
+  int shifts=0;
 
- if(*array_itterator>=array_size)
-    *array_itterator=0;
+  short* tp=targ_array;
 
-  for(i=*array_itterator;i<array_size;i++){
-    
-    if(abs(targ_array[i])>=squelch && passed==0){
-      if(pcount!=-1){
-        perd=i-pcount;
-        if(perd!=1){
-          if(perd<period_samples+5 && perd>period_samples-5){
-           //periodv=perd;
-           //printf("%d\n",perd);
-          }
-        }
-      }
-      pcount=i;
-      passed=1;
-    }
+  int bp=bits_packet+3;
 
+  i=*array_itterator;
+  targ_array=targ_array+i;
+  while(1){
+  
     if(clock>=periodv){
-      passed=0;
-      if(abs(targ_array[i])>=squelch){
-        value=targ_array[i]*(phase);
+      if(shifts<bp){
+        value=(*targ_array)*(phase);
         if(value>0){
           bin=1;
         }else{
           bin=0;
         }
-        //printf("%d ",value);
+        //printf("%d ",bin);
         outval=(outval<<1)|(bin&1);
       }else{
         outval=(outval>>1)&dframe;
@@ -315,19 +307,22 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
         }
         //printf("\n");
         //printf("%d\n",packet);
-        *array_itterator=i;
+        *array_itterator=targ_array-tp;
         return packet;
       }
+
       phase=-phase;
       clock=0;
-      peak=0;
+      shifts++;
+
     }
     //prev=targ_array[i];
     //value_at(2);
     clock++;
+    targ_array++;
     
   }
-  *array_itterator=i;
+  *array_itterator=targ_array-tp;
 
   return -1;
 

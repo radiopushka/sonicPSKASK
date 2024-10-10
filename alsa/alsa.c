@@ -64,9 +64,9 @@ int setup_alsa(char* recordf, char* playbackf, int buffer_size, int sampler){
 	
 	return 1;
 }
-int aread(short* output){
+int aread(short* output,int size){
 	int status;
-	if ((status=snd_pcm_readi(record, (char*)output, alsa_buffer_size))<0) {
+	if ((status=snd_pcm_readi(record, (char*)output, size))<0) {
 			//printf("read %d\n",status);
 			
 			return -1;
@@ -85,7 +85,7 @@ void sync_record(int retime){
   int delay = snd_pcm_status_get_delay(plbk_stat);
 
   if(delay > retime){
-    aread(nullp);
+    aread(nullp,alsa_buffer_size);
   }
 }
 void sync_play(int retime){

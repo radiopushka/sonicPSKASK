@@ -21,63 +21,17 @@ int loop[10];
 int checkchar_loop(int input){
 
 }
-
-int main(int argn, char* argv[]){
-
-  init_modulation_scheme(48000,21,500,6,1);
-  create_receiver(48000,19000);
-
-  char tbuff[29];
-  bzero(tbuff,sizeof(char)*29);
-
-  int size = calculate_frame_size(15,15);
-  printf("initialized\n");
-  short frame[size];
-  short frame2[size];
-  bzero(frame,sizeof(short)*size);
-  unsigned int itterator = 0;
-  //create_header(frame, &itterator);
-  //
-  //
-  if(setup_alsa("default",NULL,size,48000)<0)
-    return 0;
-
-  printf("alsa ready\n");
-  printf("\n");
-
-  int bsize=-1;
-  int rxcount=0;
-  double gaincont = 1;
-  short mval;
-  int chrsrx=-1;
-
-  int msgrx=0;
-
-  int framegain=25000;
-  int sqg=framegain/4;
-  int error=0;
-  int peakavg=0;
-  int success=0;
-  int success_past=0;
-  double cgain;
-  double cgain_cgain;
-
-
-
-  int success_rate_max=0;
-  double success_rate_gain=0;
-
-
-  //PID gain control
+ //PID gain control
   int previous_error=0;
-  int error_over=0;
+  int error_over=0; 
+  double gaincont = 1;
 
-
-  while(msgrx==0){
-    aread(frame);
+void receive_signal(short* frame, int size, int framegain){
+    aread(frame,size);
+    int error,mval;
     demod_carrier(frame,size);
     prepare_array(frame,size,gaincont);
-    cgain=gaincont;
+    //printf("\n gain; %g\n",gaincont);
     
     mval=getmaxval(frame,size);
     error=(framegain/2)-mval;
@@ -88,10 +42,13 @@ int main(int argn, char* argv[]){
     error_over=(error_over+error)/2;
     previous_error=error;
 
-    while(itterator<size){
-      if(wait_for_sync(frame,&itterator,size,sqg)!=-1){
+}
 
-        int output=(int)demod(frame,&itterator,size,sqg);
+  //checksum and data validation
+  int bsize=-1;
+  int chrsrx=-1;
+  int rxcount=0;
+void process_message(char* tbuff,int output){
         int outputcpy=output;
         int position;
         if(output!=-1){
@@ -101,7 +58,6 @@ int main(int argn, char* argv[]){
               outputcpy=outputcpy/273;
               if(outputcpy!=0){
                 if(outputcpy<=(255*bsize)){
-                  success++;
                   chrsrx=outputcpy;
                 }
               }
@@ -111,7 +67,6 @@ int main(int argn, char* argv[]){
             if(output!=0){
               if(position-1<=bsize&&position>1){
 
-                success++;
                 if(strlen(tbuff)==bsize){
                     int bef=calculate_message_chrsum(tbuff,bsize);
                     char prev=tbuff[position-2];
@@ -134,27 +89,76 @@ int main(int argn, char* argv[]){
                  rxcount=0;
                   chrsrx=-1;
                  //msgrx=1;
-                 break;
                 }else{
-                  printf("received: %d/%d %d vs %d          \r",rxcount,bsize,chrsm,chrsrx);
+            //\r is backline
+                  printf("received: %d/%d %d vs %d         \r ",rxcount,bsize,chrsm,chrsrx);
                 }
               }else if(position==1){
                 if(output<29)
                 bsize=output;
               }
             }
-          }
-        }
-
+          }else{
+        //printf("\ndropped\n");
       }
-    }
-    itterator=0;
-    //printf("%g %d %d %d \n",cgain, success,success_past,mval);
-    
-    cgain_cgain=cgain;
-    success_past=success;
-    success=0;
   }
+  }
+
+int main(int argn, char* argv[]){
+
+  init_modulation_scheme(48000,21,500,6,1);
+  create_receiver(48000,19000);
+
+  char tbuff[29];
+  bzero(tbuff,sizeof(char)*29);
+
+  int size = calculate_frame_size(2,2);
+  printf("initialized\n");
+  short frame[size];
+  short frame2[size];
+  bzero(frame,sizeof(short)*size);
+  unsigned int itterator = 0;
+  //create_header(frame, &itterator);
+  //
+  //
+  if(setup_alsa("default",NULL,size,48000)<0)
+    return 0;
+
+  printf("alsa ready\n");
+  printf("\n");
+
+
+  int msgrx=0;
+
+  int framegain=25000;
+  int sqg=framegain/4;
+
+
+  while(msgrx==0){
+    receive_signal(frame,size,framegain);
+
+    while(itterator<=size){
+      if(wait_for_sync(frame,&itterator,size,sqg)!=-1){
+
+
+        if(size-itterator<get_packet_size_buffer()){
+          receive_signal(frame2,size-(size-itterator),framegain);
+          memcpy(frame,frame+itterator,sizeof(short)*(size-itterator));
+
+          memcpy(frame+(size-itterator),frame2,sizeof(short)*(size-(size-itterator)));
+          itterator=0;
+        }
+        //printf("%d\n",size-itterator);
+          int output=(int)demod(frame,&itterator,sqg);
+          process_message(tbuff,output);
+        }
+      }
+
+    
+    itterator=0;
+  }
+    //printf("%g %d %d %d \n",cgain, success,success_past,mval);
+  
   free_alsa();
   /*
   //create_packet(frame,69,&itterator);
