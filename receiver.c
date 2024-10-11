@@ -45,7 +45,7 @@ void receive_signal(short* frame, int size, int framegain){
     */
   //schmidt controller
   //courtesy of Sergey Nikitin
-  gaincont=gaincont+sin(error/16000.0);
+  gaincont=gaincont+sin(error/16000.0)*3;
   //debug
   //printf("gain: %g, value: %d\n",gaincont,mval);
   //bounds
