@@ -216,12 +216,7 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
     }else{
       if(downtime>period_samples*3 && uptime> quarter_cycle){
         //clock=0;
-        if(targ_array[i]<0){
-          phase=-1;
-        }else {
-          phase=1;
-        }
-        
+               
         //printf("%d %d\n",targ_array[i-(squelch/rblk)],targ_array[i]);
         //*array_itterator=i-squelch/rblk;
         //*array_itterator=i;
@@ -233,6 +228,11 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
         while(i<array_size){
           vabs=abs(targ_array[i]);
           if(bindex>=stopping){
+            if(targ_array[peak_index]<0){
+              phase=-1;
+            }else{
+              phase=1;
+            }
             *array_itterator=peak_index;
             clock=periodv;
             periodv=period_samples;
