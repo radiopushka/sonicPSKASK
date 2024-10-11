@@ -109,7 +109,9 @@ void demod_carrier(short* array,int size){
 
 }
 
-short getmaxval(short* array,int size){
+double getmaxval(short* array,int size){
+  
+  //max val per interval algorithm
  short* end= array+size;
   int max=0;
   int maxf=0;
@@ -136,6 +138,26 @@ short getmaxval(short* array,int size){
     array++;
   }
   return maxf;
+  
+
+
+  /*
+  //RMS algorithm
+  //
+  short* end = array+size;
+  double average;
+  short* start=array;
+  while(array<end){
+    if(array==start){
+      average=abs(*array);
+    }else{
+      average=fabs((average+*array)/2);
+    }
+    array++;
+  }
+  //theoretically since the RMS is the center of the waveform;
+  return average*2;
+  */
 
 }
 

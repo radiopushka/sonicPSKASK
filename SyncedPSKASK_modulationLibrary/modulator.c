@@ -115,7 +115,7 @@ int get_packet_size_buffer(){
   return packet_size + period_samples*5;
 }
 int calculate_frame_size(int packets,int syncs){
-  return packet_size*packets+syncs*period_samples*11;
+  return packet_size*packets+syncs*period_samples*10;
 }
 void create_sync_packet(short* targ_array,unsigned int* array_itterator){
   //creates the packet with the phase sync
@@ -123,19 +123,19 @@ void create_sync_packet(short* targ_array,unsigned int* array_itterator){
   clockphase=1;
   double val;
   unsigned int itop=*array_itterator;
-  while(flip_count<11){
+  while(flip_count<10){
     
 
     val=value_at(0);
     if(is_cross(0)==1){
-      if(flip_count<8){
+      if(flip_count<7){
         clockphase=0;
       }else{
         clockphase=1;
       }
       flip_count++;
     }
-    if(flip_count<11){
+    if(flip_count<10){
       targ_array[itop] = val*amplitude*clockphase;
       itop++;
     }
@@ -203,22 +203,18 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
   int downtime=0;
   int uptime=0;
   int closest_0=squelch;
+  int quarter_cycle=period_samples/4;
   int closeindex=-1;
   double prev=targ_array[*array_itterator];
   int vabs;
   for(i=*array_itterator;i<array_size;i++){
     vabs=abs(targ_array[i]);
     if(vabs<squelch){
-      off_point=1;
       downtime++;
+      if(downtime>quarter_cycle)
       uptime=0;
-      if(vabs<closest_0){
-        closest_0=vabs;
-        closeindex=i;
-      }
     }else{
-      if(downtime>period_samples*4){
-        reset_counter(2);
+      if(downtime>period_samples*3 && uptime> quarter_cycle){
         //clock=0;
         if(targ_array[i]<0){
           phase=-1;
@@ -233,7 +229,7 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
         int peak=0;
         int peak_index=-1;
         int bindex=0;
-        int stopping=period_samples-(period_samples/4);
+        int stopping=period_samples-(quarter_cycle);
         while(i<array_size){
           vabs=abs(targ_array[i]);
           if(bindex>=stopping){
@@ -252,14 +248,9 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
 
         *array_itterator=i;
         return -1;
-      }else if(uptime>=period_samples/2){
+      }else if(uptime>quarter_cycle){
         downtime=0;
-        closest_0=squelch;
-        closeindex=-1;
-
       }
-      off_point=0;
-      //downtime=0;
       uptime++;
     }
     

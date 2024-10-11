@@ -35,11 +35,29 @@ void receive_signal(short* frame, int size, int framegain){
     
     mval=getmaxval(frame,size);
     error=(framegain/2)-mval;
+
+  /*
+  //PID controller
     //500 hz bandwidth
     gaincont=0.00059*(error) + 0*(error-previous_error) + 0.00025*(error_over);
     //300 hz band width
     //gaincont=0.001*(error) + 0*(error-previous_error) + 0.001*(error_over);
-    error_over=(error_over+error)/2;
+    */
+  //schmidt controller
+  //courtesy of Sergey Nikitin
+  gaincont=gaincont+sin(error/16000.0);
+  //debug
+  //printf("gain: %g, value: %d\n",gaincont,mval);
+  //bounds
+  if(gaincont>20){
+    gaincont=20;
+  }
+  if(gaincont<-20){
+    gaincont=-20;
+  }
+
+
+  error_over=(error_over+error)/2;
     previous_error=error;
 
 }
@@ -91,7 +109,8 @@ void process_message(char* tbuff,int output){
                  //msgrx=1;
                 }else{
             //\r is backline
-                  printf("received: %d/%d %d vs %d         \r ",rxcount,bsize,chrsm,chrsrx);
+                  printf("received: %d/%d %d vs %d         \r",rxcount,bsize,chrsm,chrsrx);
+                  fflush(stdout);
                 }
               }else if(position==1){
                 if(output<29)
