@@ -150,7 +150,7 @@ int main(int argn, char* argv[]){
   int msgrx=0;
 
   int framegain=25000;
-  int sqg=framegain/4;
+  int sqg=framegain/2;
 
 
   while(msgrx==0){
