@@ -70,13 +70,10 @@ void init_modulation_scheme(int samplerate, int bits,  float startfreq,int lowpa
 
   filterc=lowpass_strength;
 
-  float ffreq=startfreq+(startfreq/6);
-  if(tight_filter==1){
-    ffreq=startfreq;
-  }
+  float ffreq=startfreq;
   filters = malloc(sizeof(LPF)*lowpass_strength);
   for(i=0;i<lowpass_strength;i++)
-    filters[i]=create_LPF(samplerate,ffreq,1);
+    filters[i]=create_LPF(samplerate,ffreq+(ffreq*0.2),1);
 
 
   move_to_half_cycle();
