@@ -43,7 +43,7 @@ int main(int argn, char* argv[]){
   short prev;
   short mval;
   double gain=1;
-  int top =2200;
+  int top =4000;
   while(1){
     int i;
     for(i=0;i<framesize+1;i++){
