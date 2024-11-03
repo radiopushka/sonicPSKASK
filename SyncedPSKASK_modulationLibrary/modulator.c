@@ -120,6 +120,7 @@ void create_sync_packet(short* targ_array,unsigned int* array_itterator){
   clockphase=1;
   double val;
   unsigned int itop=*array_itterator;
+  reset_counter(0);
   while(flip_count<10){
     
 
