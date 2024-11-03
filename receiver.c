@@ -8,7 +8,7 @@
 //Evan Nikitin Wed Oct  2 09:22:05 PM -00 2024
 
 
-int calculate_message_chrsum(char* message,int size){
+int calculate_message_chrsum(unsigned char* message,int size){
   int i;
   int csum=0;
   for(i=0;i<size;i++){
@@ -66,7 +66,7 @@ void receive_signal(short* frame, int size, int framegain){
   int bsize=-1;
   int chrsrx=-1;
   int rxcount=0;
-void process_message(char* tbuff,int output){
+void process_message(unsigned char* tbuff,int output){
         int outputcpy=output;
         int position;
         if(output!=-1){
@@ -87,7 +87,7 @@ void process_message(char* tbuff,int output){
 
                 if(strlen(tbuff)==bsize){
                     int bef=calculate_message_chrsum(tbuff,bsize);
-                    char prev=tbuff[position-2];
+                    unsigned char prev=tbuff[position-2];
                     tbuff[position-2]=output;
                     int cur=calculate_message_chrsum(tbuff,bsize);
                     if(bef==chrsrx&&cur!=chrsrx)
@@ -168,8 +168,14 @@ int main(int argn, char* argv[]){
           itterator=0;
         }
         //printf("%d\n",size-itterator);
-          int output=(int)demod(frame,&itterator,sqg);
-          process_message(tbuff,output);
+        //demod2(frame,size,sqg);
+        
+        //itterator=size;
+          int output=(int)demod(frame,&itterator,size,0);
+
+          if(output>=0)
+          process_message((unsigned char*)tbuff,output);
+          
         }
       }
 

@@ -33,11 +33,12 @@ int wait_for_sync(short* targ_array, unsigned int* itterator,int array_size,int 
 //see example.c for proper usage
 //usually after it returns -1 you can acquire the next buffer and not worry about anything else
 
-long demod(short* targ_array, unsigned int* array_itterator,int array_size);
+long demod(short* targ_array, unsigned int* array_itterator,int array_size,int squelch);
 //this function gets called right after wait for sync passes
 //it returns -1 if there is a failure, else it returns the demodulated data
 //we will take care of the seemless buffer in the main application utilizing memcpy
 
+long demod2(short* targ_array,int size,int sq);
 void free_mod_mem();
 //this frees alocated memory
 

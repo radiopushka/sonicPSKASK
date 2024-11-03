@@ -261,7 +261,7 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
 unsigned int carray=0;
 
 
-long demod(short* targ_array, unsigned int* array_itterator,int array_size){
+long demod(short* targ_array, unsigned int* array_itterator,int array_size,int sq){
   //demodulation function
   unsigned int i,i2;
   int value;
@@ -281,6 +281,13 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size){
     if(clock>=periodv){
       if(shifts<bp){
         value=(*targ_array)*(phase);
+
+        if(abs(*targ_array)<sq){
+          
+          *array_itterator=targ_array-tp;
+          return -2;
+        }
+
         if(value>0){
           bin=1;
         }else{
@@ -315,5 +322,45 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size){
 
   return -1;
 
+
+}
+
+long demod2(short* targ_array,int array_size,int sq){
+
+  int i;
+  int pause_count=0;
+  int hasprint=0;
+  int buffer;
+  int count=0;
+  for(i=0;i<array_size;i++){
+
+    if(abs(targ_array[i])>sq){
+      if(pause_count>period_samples*3){
+        buffer=0;
+        printf("\n size: %d\n",count);
+        count=0;
+      }
+      if(targ_array[i]<0){
+        if(hasprint==0){
+          buffer=buffer<<1;
+          printf("-1");
+          count++;
+          hasprint=1;
+        }
+      }else{
+        if(hasprint==0){
+          printf("1");
+          buffer=(buffer<<1)|1;
+          count++;
+          hasprint=1;
+        }
+
+      }
+      pause_count=0;
+    }
+    hasprint=0;
+    pause_count++;
+  }
+  printf("\n");
 
 }
