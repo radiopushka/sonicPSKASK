@@ -109,6 +109,27 @@ void demod_carrier(short* array,int size){
 
 }
 
+void de_sample(short* array,int size,int div){
+  int i;
+  int start=1;
+  int sum=0;
+  int i2;
+  for(i=0;i<size;i++){
+      if(start==1){
+        sum=array[i];
+        start=0;
+      }else{
+        sum=(sum + array[i])/2;
+      }
+      if((i+1)%div==0){
+        for(i2=0;i2<div;i2++)
+          array[i-i2]=sum;
+        
+        start=1;
+      }
+  }
+}
+
 double getmaxval(short* array,int size){
   
   //max val per interval algorithm

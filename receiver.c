@@ -30,11 +30,13 @@ void receive_signal(short* frame, int size, int framegain){
     aread(frame,size);
     int error,mval;
     demod_carrier(frame,size);
+    de_sample(frame,size,8);
     prepare_array(frame,size,gaincont);
     //printf("\n gain; %g\n",gaincont);
     
     mval=getmaxval(frame,size);
     error=(framegain/2)-mval;
+    //printf("%d\n",mval);
 
   /*
   //PID controller
@@ -45,7 +47,7 @@ void receive_signal(short* frame, int size, int framegain){
     */
   //schmidt controller
   //courtesy of Sergey Nikitin
-  gaincont=gaincont+sin(error/16000.0)*3;
+  gaincont=gaincont+sin(error/16000.0)*4;
   //debug
   //printf("gain: %g, value: %d\n",gaincont,mval);
   //bounds
@@ -150,7 +152,7 @@ int main(int argn, char* argv[]){
   int msgrx=0;
 
   int framegain=25000;
-  int sqg=framegain/2;
+  int sqg=framegain/4;
 
 
   while(msgrx==0){
