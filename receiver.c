@@ -82,8 +82,26 @@ void process_message(unsigned char* tbuff,int output){
                 }
               }
             
-          }else if(output%257==0){
-            output=output/257;
+          //}else if(output%257==0){
+            }else if(output>256){
+              if(output%257!=0){
+                int nonp=output/257;
+                double decc=output;
+                double dval=decc/257.0;
+                double middle=nonp+0.5;
+                if(dval>middle){
+                  output=nonp+1;
+                }else{
+                  output=nonp;
+                }
+                
+
+
+                
+    
+              }else{
+                 output=output/257;
+              }
             if(output!=0){
               if(position-1<=bsize&&position>1){
 
@@ -119,8 +137,6 @@ void process_message(unsigned char* tbuff,int output){
                 bsize=output;
               }
             }
-          }else{
-        //printf("\ndropped\n");
       }
   }
   }
