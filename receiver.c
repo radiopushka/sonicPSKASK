@@ -82,8 +82,8 @@ void process_message(unsigned char* tbuff,int output){
                 }
               }
             
-          //}else if(output%257==0){
-            }else if(output>256){
+          }else if(output%257==0){
+            /*}else if(output>256){
               if(output%257!=0){
                 int nonp=output/257;
                 double decc=output;
@@ -101,7 +101,8 @@ void process_message(unsigned char* tbuff,int output){
     
               }else{
                  output=output/257;
-              }
+              }*/
+            output=output/257;
             if(output!=0){
               if(position-1<=bsize&&position>1){
 
@@ -168,7 +169,7 @@ int main(int argn, char* argv[]){
   int msgrx=0;
 
   int framegain=25000;
-  int sqg=framegain/4;
+  int sqg=framegain/2;
 
 
   while(msgrx==0){
