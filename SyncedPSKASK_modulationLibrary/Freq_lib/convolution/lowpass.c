@@ -67,6 +67,8 @@ double convolute(double inval,LPF* filter){
     }
 
     avg = (avg + at)/2;
+    //maybe possible: avg = ((int)(avg + at))>>1;
+    //to save clock cycles
 
     
 
