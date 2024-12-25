@@ -26,7 +26,7 @@ int main(int argn, char* argv[]){
   }
 
   init_modulation_scheme(48000,21,500,6,0);
-  create_transmitter(48000,19000);
+  create_transmitter(48000,24000);
 
   int size = calculate_frame_size(framesize+1,framesize+1);
   printf("initialized\n");
@@ -58,7 +58,7 @@ int main(int argn, char* argv[]){
         create_packet(frame,(frametxt[i]*257)|((i+2)<<16),&itterator);
       }
     }
-    prepare_array(frame,itterator-1,gain);
+    prepare_array(frame,itterator-1,4);
     turn_to_u(frame,itterator-1);
     mval=getmaxval(frame,itterator-1);
     if(mval<top){

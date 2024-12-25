@@ -47,7 +47,7 @@ void receive_signal(short* frame, int size, int framegain){
     */
   //schmidt controller
   //courtesy of Sergey Nikitin
-  gaincont=gaincont+sin(error/16000.0)*4;
+  gaincont=gaincont+sin(error/32768.0)*10;
   //debug
   //printf("gain: %g, value: %d\n",gaincont,mval);
   //bounds
@@ -145,12 +145,12 @@ void process_message(unsigned char* tbuff,int output){
 int main(int argn, char* argv[]){
 
   init_modulation_scheme(48000,21,500,6,1);
-  create_receiver(48000,19000);
+  create_receiver(48000,24000);
 
   char tbuff[29];
   bzero(tbuff,sizeof(char)*29);
 
-  int size = calculate_frame_size(2,2);
+  int size = calculate_frame_size(3,3);
   printf("initialized\n");
   short frame[size];
   short frame2[size];

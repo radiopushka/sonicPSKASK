@@ -109,6 +109,7 @@ void print_array(int freq_index){
     for(i = 0;i < scut->size;i++){
       printf("%g,",scut->farray[i]);
     }
+  printf("\nsize:%d\n",scut->size);
 }
 
 #endif /* ifndef IS_MCU */
