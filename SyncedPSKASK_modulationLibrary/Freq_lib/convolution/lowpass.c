@@ -53,7 +53,7 @@ double convolute(double inval,LPF* filter){
 
   double* swp = stcend-1;
 
-  while(stct < stcend){
+  for(;stct < stcend;stct++){
     *(bt-1) = *bt;
     bt++;
 
@@ -70,7 +70,6 @@ double convolute(double inval,LPF* filter){
 
     
 
-    stct++;
   }
   //printf("\n");
   *bt = inval*3;

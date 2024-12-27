@@ -47,7 +47,7 @@ void receive_signal(short* frame, int size, int framegain){
     */
   //schmidt controller
   //courtesy of Sergey Nikitin
-  gaincont=gaincont+sin(error/32768.0)*10;
+  gaincont=gaincont+sin(error/32768.0)*7;
   //debug
   //printf("gain: %g, value: %d\n",gaincont,mval);
   //bounds
@@ -150,13 +150,15 @@ int main(int argn, char* argv[]){
   char tbuff[29];
   bzero(tbuff,sizeof(char)*29);
 
-  int size = calculate_frame_size(3,3);
+  int size = calculate_frame_size(1,1);
   printf("initialized\n");
   short frame[size];
   short frame2[size];
   bzero(frame,sizeof(short)*size);
   unsigned int itterator = 0;
   //create_header(frame, &itterator);
+  int break_size=get_packet_size_buffer();
+  printf("%d %d\n",break_size,size);
   //
   //
   if(setup_alsa("default",NULL,size,48000)<0)
@@ -168,7 +170,7 @@ int main(int argn, char* argv[]){
 
   int msgrx=0;
 
-  int framegain=25000;
+  int framegain=15000;
   int sqg=framegain/2;
 
 
@@ -179,11 +181,17 @@ int main(int argn, char* argv[]){
       if(wait_for_sync(frame,&itterator,size,sqg)!=-1){
 
 
-        if(size-itterator<get_packet_size_buffer()){
-          receive_signal(frame2,size-(size-itterator),framegain);
-          memcpy(frame,frame+itterator,sizeof(short)*(size-itterator));
+        if(size-itterator<break_size){
+          int freesize=(size-itterator);//size left uncovered
+          int treaded_size=itterator;//size covered
 
-          memcpy(frame+(size-itterator),frame2,sizeof(short)*(size-(size-itterator)));
+
+          memcpy(frame2,frame+itterator,sizeof(short)*freesize);
+          memcpy(frame,frame2,sizeof(short)*freesize);
+          receive_signal(frame2,treaded_size,framegain);
+          memcpy(frame+freesize,frame2,sizeof(short)*treaded_size);
+
+          //printf("%d\n",size-itterator);
           itterator=0;
         }
         //printf("%d\n",size-itterator);

@@ -87,21 +87,19 @@ short doppler_fourier(short input){
 
 void turn_to_u(short* array,int size){
   short* end= array+size;
-  while(array<end){
+  for(;array<end;array++){
     *array=(*array)*value_at(cindex)*txamp;
-    array++;
   }
 }
 
 void demod_carrier(short* array,int size){
   short* end= array+size;
-  while(array<end){
+  for(;array<end;array++){
     //doppler effect compensation
     
 
     //*array=doppler_fourier(*array);
     *array=((((*array)*value_at(cindex))+((*array)*value_at(sindex)))/2.0)*rxamp;
-    array++;
   }
 
   //memcpy(davp,dav,sizeof(int)*dasize);
@@ -138,7 +136,7 @@ double getmaxval(short* array,int size){
   int maxf=0;
   int crossings=0;
   int prev=array[0];
-  while(array<end){
+  for(;array<end;array++){
     if(abs(*array)>max){
       max=abs(*array);
     }
@@ -156,7 +154,6 @@ double getmaxval(short* array,int size){
       crossings++;
     }
     prev=*array;
-    array++;
   }
   return maxf;
   
