@@ -13,19 +13,19 @@ LPF* create_LPF(int sample_rate, int freq, double strength){
 
 
   LPF* l   = malloc(sizeof(LPF));
-  l->buffer= malloc(sizeof(double)*cbsize);
-  l->cw    = malloc(sizeof(double)*cbsize);
+  l->buffer= malloc(sizeof(float)*cbsize);
+  l->cw    = malloc(sizeof(float)*cbsize);
 
   l->cw_end   = l->cw+cbsize;
   l->bend     = l->buffer+cbsize;
   l->strength = strength;
 
-  bzero(l->buffer,sizeof(double)*cbsize);
+  bzero(l->buffer,sizeof(float)*cbsize);
 
-  double* ct=l->cw;
+  float* ct=l->cw;
 
-  double cv=PI/(cbsize-1);
-  double stc=0;
+  float cv=PI/(cbsize-1);
+  float stc=0;
 
   while(ct<l->cw_end){
     *ct = sin(stc) * strength; 
@@ -35,23 +35,23 @@ LPF* create_LPF(int sample_rate, int freq, double strength){
   return l;
 }
 
-double convolute(double inval,LPF* filter){
-  double* stc    = filter->cw;
-  double* stcend = filter->cw_end;
-  double* buff   = filter->buffer;
+float convolute(float inval,LPF* filter){
+  float* stc    = filter->cw;
+  float* stcend = filter->cw_end;
+  float* buff   = filter->buffer;
 
 
-  double tsuyo   = filter->strength;
+  float tsuyo   = filter->strength;
 
 
-  double at;
+  float at;
 
-  double* stct = stc+1;
-  double* bt   = buff+1;
-  double avg     = (*stc)*(*bt);
+  float* stct = stc+1;
+  float* bt   = buff+1;
+  float avg     = (*stc)*(*bt);
   //printf("%g * %g\n",*stc,*bt);
 
-  double* swp = stcend-1;
+  float* swp = stcend-1;
 
   for(;stct < stcend;stct++){
     *(bt-1) = *bt;

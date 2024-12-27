@@ -2,11 +2,11 @@
 #define HIGHCUT
 
 struct Low_pass{
-	double* buffer;
-	double* cw;
-  double* cw_end;
-  double* bend;
-  double strength;
+	float* buffer;
+	float* cw;
+  float* cw_end;
+  float* bend;
+  float strength;
 };
 
 typedef struct Low_pass LPF;
@@ -15,7 +15,7 @@ LPF* create_LPF(int sample_rate, int freq, double strength);
 
 
 
-double convolute(double inval,LPF* filter);
+float convolute(float inval,LPF* filter);
 
 
 void free_lpf(LPF** lin);
