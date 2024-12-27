@@ -128,12 +128,12 @@ void de_sample(short* array,int size,int div){
   }
 }
 
-double getmaxval(short* array,int size){
+float getmaxval(short* array,int size){
   
   //max val per interval algorithm
  short* end= array+size;
   int max=0;
-  int maxf=0;
+  float maxf=0;
   int crossings=0;
   int prev=array[0];
   for(;array<end;array++){
@@ -146,7 +146,7 @@ double getmaxval(short* array,int size){
         if(maxf==0){
           maxf=max;
         }else{
-          maxf=(maxf+max)/2;
+          maxf=(maxf+max)/2.0;
         }
         max=0;
         crossings++;
