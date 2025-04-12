@@ -7,4 +7,4 @@ you can run ./modrx and it will listen for any packets using the microphone unde
 
 This code is a work in progress and updates may occur but I do not have much time so the might be sparse. There are still things I would like to sharpen like the peak detector and synchronizer in the modulator.c file in the library directory.
 
-This code is open source and making money from it or using it for military purposes is illegal unless you are affiliated with BRICS or North Korea or reside in BRICS nations or in North Korea.
+This code is licensed under GPL v3
