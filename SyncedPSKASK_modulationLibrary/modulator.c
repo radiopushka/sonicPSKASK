@@ -1,5 +1,4 @@
 #include "Freq_lib/frequency_itr.h"
-#include "Freq_lib/convolution/lowpass.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,24 +8,21 @@
 
 //Evan Nikitin Wed Oct  2 09:22:05 PM -00 2024
 
-int period_samples;
+/*int period_samples;
 int bits_packet;
 int packet_size;
 double amplitude;
 unsigned int dframe;
 int clockphase = -1;
-LPF* hc;
+*/
 
-
-void move_to_half_cycle(){
-    reset_counter(0);
-    reset_counter(1);
-    reset_counter(2);
+void move_to_half_cycle(Modulator m){
+    reset_counter(m->m_freq);
 
 }
 
-void reset_scheme(){
-  move_to_half_cycle();
+void reset_scheme(Modulator m){
+  move_to_half_cycle(m);
 }
 //initial attempt was to perform OFDM with averaging has failed.
 //this is too computationally heavy to pass each frequency through FIFO and a low pass convolution
@@ -36,60 +32,64 @@ void reset_scheme(){
 //the sync starts with a 1,0 sequence, there first two bits are rezerved
 //ASK
 //
-LPF** filters;
-int filterc=0;
 
-double kawaru;
-int rblk;
+
 //changing this number helps with multipath
 //70 is best for 400 hz rate i will try the formula
 //kawaru = minamp/(samplerate/switching_freq)
 //keep minimum amplitude around 14000 and max around 15000 for the AGC
  
-void init_modulation_scheme(int samplerate, int bits,  float startfreq,int lowpass_strength,int tight_filter){
+Modulator init_modulation_scheme(int samplerate, int bits,  float startfreq,int lowpass_strength,int tight_filter){
 
   if(bits < 1){
     printf("cannot create modulation scheme for 0 bits, ABORT\n");
-    return;
+    return NULL;
   }
-  dframe=0;
-  clockphase=-1;
+  Modulator mod=malloc(sizeof(struct Modulator));
+  mod->dframe=0;
+  mod->clockphase=-1;
   int i;
   for(i=0;i<bits;i++){
-    dframe=(dframe<<1)|1;
+    mod->dframe=((mod->dframe)<<1)|1;
   }
   bits++;
 
-  period_samples=(get_period_samples(startfreq,samplerate))/2;
-  map_frequency(startfreq,samplerate,1);
-  map_frequency(startfreq,samplerate,0);
-  map_frequency(startfreq,samplerate,1);
-  amplitude = 32000;
-  bits_packet=bits;
-  packet_size=bits*period_samples;
+  mod->uptime=0;
+  mod->downtime=0;
 
-  filterc=lowpass_strength;
+  mod->period_samples=(get_period_samples(startfreq,samplerate))>>1;
+  mod->period_samples_t3=mod->period_samples*4;
+  mod->quarter_cycle=mod->period_samples>>2;
+  mod->m_freq=map_frequency(startfreq,samplerate,1);
+  mod->phase=1;
+  mod->detected_period=(mod->period_samples);
+
+  mod->amplitude = 22000;
+  mod->bits_packet=bits;
+  mod->packet_size=bits*mod->period_samples;
+
+  mod->filterc=lowpass_strength;
 
   float ffreq=startfreq;
-  filters = malloc(sizeof(LPF)*lowpass_strength);
+  mod->filters = malloc(sizeof(LPF)*lowpass_strength);
   for(i=0;i<lowpass_strength;i++)
-    filters[i]=create_LPF(samplerate,ffreq+(ffreq*0.2),1);
+    mod->filters[i]=create_LPF(samplerate,ffreq*3,1);
 
 
-  move_to_half_cycle();
+  reset_counter(mod->m_freq);
 
-  kawaru=14000/(samplerate/startfreq);
-  rblk=14000/(period_samples);
+
+  return mod;
 }
 
-void prepare_array(short* data, int size,float gain){
+void prepare_array(Modulator m,short* data, int size,float gain){
   short* dend=data+size;
   short* dst = data;
   int i;
-  for(i=0;i<filterc;i++){
+  for(i=0;i<m->filterc;i++){
    while(dst<dend){
 
-      *dst=convolute((*dst)*gain,filters[i]);
+      *dst=convolute((*dst)*gain,m->filters[i]);
 
     dst++;
    }
@@ -97,43 +97,47 @@ void prepare_array(short* data, int size,float gain){
   }
 }
 
-void free_mod_mem(){
+void free_global_mem(){
   free_d_mem();
+}
+void free_mod_mem(Modulator m){
 
   int i;
-  for(i=0;i<filterc;i++)
-    free_lpf(&filters[i]);
-
-  free(filters);
+  for(i=0;i<m->filterc;i++){
+    LPF* ftmp=m->filters[i];
+    free_lpf(&ftmp);
+    m->filters[i]=ftmp;
+  }
+  free(m->filters);
 }
 
-int get_packet_size_buffer(){
-  return packet_size + period_samples*5;
+int get_packet_size_buffer(Modulator m){
+  return m->packet_size + m->period_samples*5;
 }
-int calculate_frame_size(int packets,int syncs){
-  return packet_size*packets+syncs*period_samples*10;
+int calculate_frame_size(Modulator m,int packets,int syncs){
+  return m->packet_size*packets+syncs*m->period_samples*10;
 }
-void create_sync_packet(short* targ_array,unsigned int* array_itterator){
+void create_sync_packet(Modulator m,short* targ_array,unsigned int* array_itterator){
   //creates the packet with the phase sync
   int flip_count = 0;
-  clockphase=1;
+  m->clockphase=1;
   double val;
   unsigned int itop=*array_itterator;
-  reset_counter(0);
+  reset_counter(m->m_freq);
   while(flip_count<10){
     
 
-    val=value_at(0);
-    if(is_cross(0)==1){
+    val=value_at(m->m_freq);
+    if(is_cross(m->m_freq)==1){
       if(flip_count<7){
-        clockphase=0;
+        m->clockphase=0;
       }else{
-        clockphase=1;
+        m->clockphase=1;
       }
       flip_count++;
     }
     if(flip_count<10){
-      targ_array[itop] = val*amplitude*clockphase;
+      targ_array[itop] = val*m->amplitude*m->clockphase;
       itop++;
     }
   }
@@ -141,27 +145,27 @@ void create_sync_packet(short* targ_array,unsigned int* array_itterator){
 
 }
 
-void create_packet(short* targ_array, unsigned long data_in, unsigned int* array_itterator){
+void create_packet(Modulator m,short* targ_array, unsigned long data_in, unsigned int* array_itterator){
   unsigned int itop=*array_itterator;
   int flip_count = 0;
-  clockphase=1;
+  m->clockphase=1;
   double val;
-  while(flip_count<bits_packet){
+  while(flip_count<m->bits_packet){
 
 
-    val=value_at(0);
-    if(is_cross(0)==1){
-        clockphase=(data_in&1);
-        if(clockphase==0)
-          clockphase=-1;
+    val=value_at(m->m_freq);
+    if(is_cross(m->m_freq)==1){
+        m->clockphase=(data_in&1);
+        if(m->clockphase==0)
+          m->clockphase=-1;
 
       //printf("%d ",(int)data_in&1);
         data_in=data_in>>1;
-      flip_count++;
+        flip_count++;
       
     }
-    if(flip_count<bits_packet){
-      targ_array[itop] = val*amplitude*clockphase;
+    if(flip_count<m->bits_packet){
+      targ_array[itop] = val*m->amplitude*m->clockphase;
       itop++;
     }
   }
@@ -173,35 +177,134 @@ void create_packet(short* targ_array, unsigned long data_in, unsigned int* array
 
 
 
-// demodulation, must reset the library when switching modes
+// demodulation, 
 
-int periodv=0;
-int clock=0;
+int get_largest_value(short* array, int size){
+  int largest=-1;
+  int indexp=-1;
+  short* end=array+size;
+  for(short* ptr=array; ptr<end; ptr++){
+    int absv=abs(*ptr);
+    if(absv>largest){
+      largest=absv;
+      indexp=ptr-array;
+    }
+  }
+  return indexp;
+}
 
-int sync_polarity = 1;
+int peak_detector(Modulator m, unsigned int array_size,short* targ_array, unsigned int start_index){
+
+  //constant:
+  const int number_half_cycles=3;
+  /*
+  * step 1:
+  * rectify and find average, estimate length of sampling using given period samples, 3 period samples
+  */
+  unsigned int buffer_time = m->period_samples * number_half_cycles;
+
+  unsigned int bound = start_index + buffer_time;
+  
+  //check if we are out of bounds T(1):
+  if(bound > array_size)
+    return -2;
+
+  short check_buffer[buffer_time+m->period_samples];
+  memcpy(check_buffer,targ_array+start_index,buffer_time<<1);
+  int lindex1=get_largest_value(check_buffer,buffer_time);
+  short* start=check_buffer + lindex1 - m->quarter_cycle;
+  if(start<check_buffer){
+    start=check_buffer;
+  }
+  memset(start,0,m->period_samples<<1);
+  int lindex2=get_largest_value(check_buffer,buffer_time);
+  start=check_buffer + lindex2 - m->quarter_cycle;
+  if(start<check_buffer){
+    start=check_buffer;
+  }
+  memset(start,0,m->period_samples<<1);
+  int lindex3=get_largest_value(check_buffer,buffer_time);
+
+  //order the three largest values by position in array
+  int tmp;
+  if(lindex2<lindex1 && lindex2<lindex3){
+    tmp=lindex1;
+    lindex1 = lindex2;
+    lindex2=tmp;
+  }
+  if(lindex3<lindex1 && lindex3<lindex2){
+    tmp=lindex1;
+    lindex1 = lindex3;
+    lindex3=tmp;
+  }
+
+  if(lindex3<lindex2){
+    tmp=lindex2;
+    lindex2=lindex3;
+    lindex3=tmp;
+  }
+
+
+  //determine the period:
+  unsigned int period1 = lindex2 - lindex1;
+  unsigned int period2 = lindex3 - lindex2; 
+
+  int ip1=lindex1+start_index;
+  int ip2=lindex2+start_index;
+  int ip3=lindex3+start_index;
+
+  //printf("periods: %d %d %d  %d %d %d \n",period1, period2, m->period_samples,start_index, ip2 ,ip3);
+
+  int difference_p1 = abs((m->period_samples) - period1);
+  int difference_p2 = abs((m->period_samples) - period2);
+
+
+  m->detected_period=period1;
+  int start_point=ip1;
+  if(targ_array[ip1]>0){
+      m->phase=1;
+  }else{
+      m->phase=-1;
+  }
+
+  if(difference_p2<difference_p1){
+    //than peak 2 to 1 is the optimal point to analyze
+    start_point=ip2-m->period_samples;
+    m->detected_period=period2;
+    if(targ_array[ip3]>0){
+      m->phase=1;
+    }else{
+      m->phase=-1;
+    }
+  }
+  if(start_point<0){
+    start_point=0;
+  }
+  //printf("startloc: %d\n",start_point);
+
+  return start_point;
+}
+
 
 
 
 
   int averaging = 0;
-unsigned int phase=1;
-int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_size,int squelch){
+int wait_for_sync(Modulator m,short* targ_array, unsigned int* array_itterator,int array_size,int squelch){
   unsigned long i;
 
 
 
-  int going_up=0;
-  int going_down=0;
 
   if(*array_itterator>=array_size){
     return -2;
   }
-  int off_point=0;
-  int downtime=0;
-  int uptime=0;
-  int closest_0=squelch;
-  int quarter_cycle=period_samples/4;
-  int closeindex=-1;
+  int downtime=m->downtime;
+  int uptime=m->uptime;
+  //downtime=0;
+
+  //uptime=0;
+  int quarter_cycle=(m->period_samples)>>2;
   double prev=targ_array[*array_itterator];
   int vabs;
   for(i=*array_itterator;i<array_size;i++){
@@ -211,14 +314,34 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
       if(downtime>quarter_cycle)
       uptime=0;
     }else{
-      if(downtime>period_samples*3 && uptime> quarter_cycle){
+      if(downtime>m->period_samples_t3 && uptime> quarter_cycle){
         //clock=0;
                
+        //downtime=0;
+        //uptime=0;
+        int peak=peak_detector(m,array_size,targ_array,i);
+        if(peak > -1){
+
+          //printf("synced\n");
+          *array_itterator=peak;
+          m->downtime=0;
+          m->uptime=0;
+          return 1;
+        }else if (peak==-2){
+          
+          m->uptime=uptime;
+          m->downtime=downtime;
+
+          *array_itterator=i;
+          return -1;
+        }        
+
         //printf("%d %d\n",targ_array[i-(squelch/rblk)],targ_array[i]);
         //*array_itterator=i-squelch/rblk;
         //*array_itterator=i;
         //*array_itterator=i+((14000-squelch)/rblk)*2;
-        int peak=0;
+        //need to write a better peak detector function
+        /*int peak=0;
         int peak_index=-1;
         int bindex=0;
         int stopping=period_samples-(quarter_cycle);
@@ -244,7 +367,8 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
         }
 
         *array_itterator=i;
-        return -1;
+        return -1;*/
+
       }else if(uptime>quarter_cycle){
         downtime=0;
       }
@@ -254,13 +378,15 @@ int wait_for_sync(short* targ_array, unsigned int* array_itterator,int array_siz
     prev=targ_array[i];
   }
   *array_itterator=i;
+  m->uptime=uptime;
+  m->downtime=downtime;
   return -1;
 }
 
 unsigned int carray=0;
 
 
-long demod(short* targ_array, unsigned int* array_itterator,int array_size,int sq){
+long demod(Modulator m,short* targ_array, unsigned int* array_itterator,int array_size){
   //demodulation function
   unsigned int i,i2;
   int value;
@@ -268,25 +394,21 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
   unsigned long packet=0;
   char bin;
   int shifts=0;
+  int period=m->period_samples;
+  int phase=m->phase;
 
   short* tp=targ_array;
 
-  int bp=bits_packet+3;
+  int bp=m->bits_packet+3;
 
+  short* final_l=targ_array+array_size;
   i=*array_itterator;
   targ_array=targ_array+i;
-  while(1){
+  while(targ_array < final_l){
   
-    if(clock>=periodv){
       if(shifts<bp){
         value=(*targ_array)*(phase);
         //printf("%d ",value);
-
-        if(abs(*targ_array)<sq){
-          
-          *array_itterator=targ_array-tp;
-          return -2;
-        }
 
         if(value>0){
           bin=1;
@@ -296,8 +418,8 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
         //printf("%d ",bin);
         outval=(outval<<1)|(bin&1);
       }else{
-        outval=(outval>>1)&dframe;
-        for(i2=1;i2<bits_packet;i2++){
+        outval=(outval>>1)&(m->dframe);
+        for(i2=1;i2<m->bits_packet;i2++){
           packet=(packet<<1)|(outval&1);
           outval=outval>>1;
         }
@@ -308,14 +430,11 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
       }
 
       phase=-phase;
-      clock=0;
       shifts++;
 
-    }
     //prev=targ_array[i];
     //value_at(2);
-    clock++;
-    targ_array++;
+    targ_array=targ_array+period;
     
   }
   *array_itterator=targ_array-tp;
@@ -325,7 +444,7 @@ long demod(short* targ_array, unsigned int* array_itterator,int array_size,int s
 
 }
 
-long demod2(short* targ_array,int array_size,int sq){
+long demod2(Modulator m,short* targ_array,int array_size,int sq){
 
   int i;
   int pause_count=0;
@@ -335,7 +454,7 @@ long demod2(short* targ_array,int array_size,int sq){
   for(i=0;i<array_size;i++){
 
     if(abs(targ_array[i])>sq){
-      if(pause_count>period_samples*3){
+      if(pause_count>m->period_samples_t3){
         buffer=0;
         printf("\n size: %d\n",count);
         count=0;

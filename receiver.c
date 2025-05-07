@@ -22,21 +22,22 @@ int checkchar_loop(int input){
 
 }
   double gaincont = 1;
+int avgavg=0;
 
-void receive_signal(short* frame, int size, int framegain){
+void receive_signal(Modulator m,short* frame, int size, int framegain){
     aread(frame,size);
     float error,mval;
     demod_carrier(frame,size);
     de_sample(frame,size,8);
-    prepare_array(frame,size,gaincont);
+    prepare_array(m,frame,size,gaincont);
     //printf("\n gain; %g\n",gaincont);
     
-    mval=getmaxval(frame,size);
-
+    mval=getavgval(frame,size);
+    avgavg=(avgavg+(int)mval)>>1;
    /* if(mval < 1)
       return;*/
 
-    error=(framegain>>1)-mval;
+    error=framegain-avgavg;
     //printf("%d\n",mval);
 
   /*
@@ -48,7 +49,7 @@ void receive_signal(short* frame, int size, int framegain){
     */
   //schmidt controller
   //courtesy of Sergey Nikitin
-  gaincont=gaincont+sin(error/32768.0)*10;
+  gaincont=gaincont+sin(error/32768.0)*0.1;
   //debug
   //printf("gain: %g, value: %d\n",gaincont,mval);
   //bounds
@@ -143,20 +144,21 @@ void process_message(unsigned char* tbuff,int output){
 
 int main(int argn, char* argv[]){
 
-  init_modulation_scheme(48000,21,500,6,1);
+  Modulator m=init_modulation_scheme(48000,21,500,6,1);
+  //uplink: 17000, downlink: 24000
   create_receiver(48000,24000);
 
   char tbuff[29];
   bzero(tbuff,sizeof(char)*29);
 
-  int size = calculate_frame_size(1,1);
-  printf("initialized\n");
+  int size = calculate_frame_size(m,1,1);
+  printf("initialized buffer size: %d\n",size);
   short frame[size];
   short frame2[size];
   bzero(frame,sizeof(short)*size);
   unsigned int itterator = 0;
   //create_header(frame, &itterator);
-  int break_size=get_packet_size_buffer();
+  int break_size=get_packet_size_buffer(m);
   printf("%d %d\n",break_size,size);
   //
   //
@@ -169,16 +171,18 @@ int main(int argn, char* argv[]){
 
   int msgrx=0;
 
-  int framegain=10000;
-  int sqg=framegain/2;
+  int framegain=5000;
 
 
   while(msgrx==0){
-    receive_signal(frame,size,framegain);
+    receive_signal(m,frame,size,framegain);
 
     while(itterator<=size){
-      if(wait_for_sync(frame,&itterator,size,sqg)!=-1){
 
+      int mid=avgavg;
+      if(wait_for_sync(m,frame,&itterator,size,mid + mid>>1)>-1){
+
+          //printf("synced\n");
 
         if(size-itterator<break_size){
           int freesize=(size-itterator);//size left uncovered
@@ -187,7 +191,7 @@ int main(int argn, char* argv[]){
 
           memcpy(frame2,frame+itterator,sizeof(short)*freesize);
           memcpy(frame,frame2,sizeof(short)*freesize);
-          receive_signal(frame2,treaded_size,framegain);
+          receive_signal(m,frame2,treaded_size,framegain);
           memcpy(frame+freesize,frame2,sizeof(short)*treaded_size);
 
           //printf("%d\n",size-itterator);
@@ -197,11 +201,24 @@ int main(int argn, char* argv[]){
         //demod2(frame,size,sqg);
         
         //itterator=size;
-          int output=(int)demod(frame,&itterator,size,0);
+          int output=(int)demod(m,frame,&itterator,size);
 
           if(output>=0)
           process_message((unsigned char*)tbuff,output);
           
+        }else{
+           int freesize=(size-itterator);//size left uncovered
+          int treaded_size=itterator;//size covered
+
+
+          memcpy(frame2,frame+itterator,sizeof(short)*freesize);
+          memcpy(frame,frame2,sizeof(short)*freesize);
+          receive_signal(m,frame2,treaded_size,framegain);
+          memcpy(frame+freesize,frame2,sizeof(short)*treaded_size);
+
+          //printf("%d\n",size-itterator);
+          itterator=0;
+
         }
       }
 

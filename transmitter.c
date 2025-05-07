@@ -25,10 +25,11 @@ int main(int argn, char* argv[]){
     charsum=charsum+frametxt[i];
   }
 
-  init_modulation_scheme(48000,21,500,6,0);
+  Modulator m = init_modulation_scheme(48000,21,500,6,1);
+  //uplink: 17000, downlink: 24000
   create_transmitter(48000,24000);
 
-  int size = calculate_frame_size(framesize+1,framesize+1);
+  int size = calculate_frame_size(m,framesize+1,framesize+1);
   printf("initialized\n");
   short frame[size];
   bzero(frame,sizeof(short)*size);
@@ -43,30 +44,30 @@ int main(int argn, char* argv[]){
   short prev;
   short mval;
   double gain=1;
-  int top =4400;
+  int top =16000;
   while(1){
     int i;
     for(i=0;i<framesize+1;i++){
-      create_sync_packet(frame,&itterator);
+      create_sync_packet(m,frame,&itterator);
       if(frametxt[i]==0 && i<framesize){
 
-        create_packet(frame,((framesize-1)*257)|(1<<16),&itterator);
+        create_packet(m,frame,((framesize-1)*257)|(1<<16),&itterator);
       }else if(i==framesize){
-        create_packet(frame,charsum*273,&itterator);
+        create_packet(m,frame,charsum*273,&itterator);
         //printf("charsum: %d\n",charsum);
       }else{
-        create_packet(frame,(frametxt[i]*257)|((i+2)<<16),&itterator);
+        create_packet(m,frame,(frametxt[i]*257)|((i+2)<<16),&itterator);
       }
     }
-    prepare_array(frame,itterator-1,4);
+    prepare_array(m,frame,itterator-1,gain);
     turn_to_u(frame,itterator-1);
-    mval=getmaxval(frame,itterator-1);
-    if(mval<top){
-      if(mval<top/2){
-        gain=gain+1;
-      }
+    mval=getavgval(frame,itterator-1);
+    /*if(mval<top){
       gain=gain+0.01;
-    }
+    }else{
+      gain=gain-0.01;
+    }*/
+    gain=gain+sin((top-mval)/32768.0)*0.1;
       
     awrite(frame,itterator-1);
     prev=frame[itterator-1];

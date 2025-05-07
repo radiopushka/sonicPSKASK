@@ -157,11 +157,12 @@ float getmaxval(short* array,int size){
   }
   return maxf;
   
-
+}
 
   /*
   //RMS algorithm
-  //
+  /*/
+float getavgval(short* array, int size){
   short* end = array+size;
   double average;
   short* start=array;
@@ -169,13 +170,13 @@ float getmaxval(short* array,int size){
     if(array==start){
       average=abs(*array);
     }else{
-      average=fabs((average+*array)/2);
+      average=(average+abs(*array))/2.0;
     }
     array++;
   }
   //theoretically since the RMS is the center of the waveform;
-  return average*2;
-  */
+  return average;
+  
 
 }
 
