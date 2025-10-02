@@ -8,3 +8,5 @@ you can run ./modrx and it will listen for any packets using the microphone unde
 This code is a work in progress and updates may occur but I do not have much time so the might be sparse. There are still things I would like to sharpen like the peak detector and synchronizer in the modulator.c file in the library directory.
 
 This code is licensed under GPL v3
+
+THE NEXT VERSION OF THIS EXPERIMENT WILL BE USING QFDM and PSK with pilot tones 
